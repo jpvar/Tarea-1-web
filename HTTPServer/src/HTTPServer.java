@@ -3,6 +3,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -12,6 +13,8 @@ import java.net.Socket;
 import java.nio.file.ReadOnlyFileSystemException;
 import java.util.StringTokenizer;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HTTPServer implements Runnable{
 	static final File WEB_ROOT = new File(".");
@@ -28,9 +31,14 @@ public class HTTPServer implements Runnable{
 	//conexión del cliente a través de socket
 	private Socket connect;
 	
+	private Map<String, String> mimeTypes;
+	
 	public HTTPServer(Socket s)
 	{
 		connect = s;
+		mimeTypes = new HashMap<String, String>();
+		this.cargar_mimeTypes();
+		
 	}
 	
 	public static void main(String[] args)
@@ -199,15 +207,58 @@ public class HTTPServer implements Runnable{
 	
 	private String getContentType(String archivo_solicitado)
 	{
-		if(archivo_solicitado.endsWith(".htm") || archivo_solicitado.endsWith(".html"))
+		for (Map.Entry<String, String> pair : mimeTypes.entrySet())//busca en el mapa de tipos el tipo solicitado
 		{
-			return "html";
+			if(archivo_solicitado == pair.getKey())
+			{
+				return pair.getValue().toString();//si encuentra el tipo, lo devuelve
+			}
 		}
-		else
+		return "no";//si no lo encuentra retorna no (406. No aceptable)
+		
+		
+	}
+	
+	public void cargar_mimeTypes()
+	{
+		String filename = "./mimetype.txt";
+		BufferedReader br = null;
+		FileReader fr = null;
+		
+		
+		try
 		{
-			return "text/plain";
+			fr = new FileReader(filename);
+			br = new BufferedReader(fr);
+			String current_line = "";
+			while((current_line = br.readLine()) != null)
+			{
+				StringTokenizer tokenizer = new StringTokenizer(current_line);
+				if(tokenizer.hasMoreTokens())
+				{
+					String key = tokenizer.nextToken();
+					if(tokenizer.hasMoreTokens())
+					{
+						String value = tokenizer.nextToken();
+						mimeTypes.put(key, value);
+					}
+					
+				}
+				
+			}
+			
+			for (Map.Entry<String, String> pair : mimeTypes.entrySet())
+			{
+				System.out.print("Llave: " + pair.getKey() + " valor: " + pair.getValue());
+				System.out.println();
+			}
+		}
+		catch(IOException e)
+		{
+			System.out.println(e.getMessage());
 		}
 	}
+	
 	
 	private void archivo_no_encontrado(PrintWriter salida, OutputStream datos_salida, String archivo_solicitado) throws IOException
 	{

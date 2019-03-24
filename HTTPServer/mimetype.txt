@@ -1,0 +1,10 @@
+htm text/html
+html text/html
+jpeg image/jpeg
+jpg image/jpeg
+pdf application/pdf
+xml application/xml
+rar application/x-rar-compressed
+svg image/svg+xml
+zip application/zip
+bin application/octet-stream
