@@ -3,14 +3,19 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.ReadOnlyFileSystemException;
 import java.util.StringTokenizer;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class HTTPServer implements Runnable{
 	private static final File WEB_ROOT = new File(".");
@@ -20,10 +25,14 @@ public class HTTPServer implements Runnable{
 	private static final String NOT_IMPLEMENTED = "501.html";
 	private static final int PORT = 8080;
 	private Socket connection;
-	
+	private Map<String, String> mimeTypes;
+
+
 	public HTTPServer(Socket connection)
 	{
 		this.connection = connection;
+		mimeTypes = new HashMap<String, String>();
+		this.cargar_mimeTypes();
 	}
 	
 
