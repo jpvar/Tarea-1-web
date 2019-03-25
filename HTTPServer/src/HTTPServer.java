@@ -9,93 +9,75 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.file.ReadOnlyFileSystemException;
 import java.util.StringTokenizer;
 import java.util.Date;
 
 public class HTTPServer implements Runnable{
-	static final File WEB_ROOT = new File(".");
-	static final String DEFAULT_FILE = "index.html";
-	static final String FILE_NOT_FOUND = "404.html";
-	static final String NOT_IMPLEMENTED = "not_supported.html";
+	private static final File WEB_ROOT = new File(".");
+	private static final String DEFAULT_FILE = "index.html";
+	private static final String NOT_FOUND = "404.html";
+	private static final String NOT_ACCEPTABLE = "406.html";
+	private static final String NOT_IMPLEMENTED = "501.html";
+	private static final int PORT = 8080;
+	private Socket connection;
 	
-	//puerto de conexión
-	static final int PUERTO = 8080;
-	
-	//verbose mode
-	static final boolean verbose = true;
-	
-	//conexión del cliente a través de socket
-	private Socket connect;
-	
-	public HTTPServer(Socket s)
+	public HTTPServer(Socket connection)
 	{
-		connect = s;
+		this.connection = connection;
 	}
 	
-	public static void main(String[] args)
-	{
+
+
+	public static void Init() {
 		try
 		{
-			ServerSocket serverConnect = new ServerSocket(PUERTO);
-			System.out.println("Servidor arrancado. \nEscuchando conexiones en el puerto " + PUERTO + "...\n");
-			
-			//escucha hasta que el usuario detenga la ejecución
+			ServerSocket serverConnect = new ServerSocket(PORT);
+			System.out.println("Server started. \nListen for connections on port: " + PORT + "...\n");
+
+			//Server listen until user ends connection.
 			while(true)
 			{
-				HTTPServer servidor = new HTTPServer(serverConnect.accept());
-				
-				//crea un hilo para cada conexión entrante
-				Thread hilo = new Thread(servidor);
-				hilo.start();
+				HTTPServer server = new HTTPServer(serverConnect.accept());
+				//Creates one thread per connection.
+				Thread connection = new Thread(server);
+				connection.start();
 			}
 		}
 		catch(IOException e)
 		{
-			System.err.println("Error de conexión en el servidor" + e.getMessage());
+			System.err.println("Error de conexion en el servidor" + e.getMessage());
 		}
 	}
 
 	@Override
 	public void run() 
 	{
-		//maneja la conexión de un cliente particular
-		BufferedReader entrada = null;
-		PrintWriter salida = null;
-		BufferedOutputStream datos_salida = null;
-		String archivo_solicitado = null;
+		BufferedReader input = null;
+		PrintWriter output = null;
+		BufferedOutputStream outputData = null;
+		String requestedFile = null;
 		
 		try
 		{
-			//lee caracteres del cliente
-			entrada = new BufferedReader(new InputStreamReader(connect.getInputStream()));
-			//salida de caracteres para el cliente (headers)
-			salida = new PrintWriter(connect.getOutputStream());
-			//información binaria para los datos solicitados
-			datos_salida = new BufferedOutputStream(connect.getOutputStream());
+			input = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+			output = new PrintWriter(connection.getOutputStream());
+			outputData = new BufferedOutputStream(connection.getOutputStream());
 			
-			//obtiene la primera linea de la solicitud http
-			String entr = entrada.readLine();
-			System.out.println("entr = " + entr);
-			//parsea el request con un tokenizador
-			StringTokenizer parser = new StringTokenizer(entr);
-			String metodo = parser.nextToken().toUpperCase();//saca el metodo http de la solicitud
+			String inputData = input.readLine();
+			StringTokenizer parser = new StringTokenizer(inputData);
+			String metodo = parser.nextToken().toUpperCase();
 			
-			//jala el archivo solicitado
-			archivo_solicitado = parser.nextToken().toLowerCase();
+			requestedFile = parser.nextToken().toLowerCase();
 			
 			if(!metodo.equals("HEAD") && !metodo.equals("GET") && !metodo.equals("POST"))
 			{
 				System.out.println("501 Not implemented: " + metodo + " method");
 				
-				//prepara el archivo solicitado para devolverlo al cliente
 				File archivo = new File(WEB_ROOT, NOT_IMPLEMENTED);
 				int tamano_archivo = (int)archivo.length();
 				String contentMimeType = "text/html";
-				//lee contenido para retornar al cliente
 				byte[] datos_archivo = leer_datos_archivo(archivo, tamano_archivo);
 				
-				//se envian los encabezados http al cliente con los datos
 				System.out.println("HTTP/1.1 501 Not Implemented");
 				System.out.println("Servidor: servidor http");
 				System.out.println("Date: " + new Date());
@@ -105,39 +87,39 @@ public class HTTPServer implements Runnable{
 				System.out.flush();
 				
 				//archivo
-				datos_salida.write(datos_archivo, 0, tamano_archivo);
-				datos_salida.flush();
+				outputData.write(datos_archivo, 0, tamano_archivo);
+				outputData.flush();
 			}
 			else
 			{
 				//GET, HEAD o POST
-				if(archivo_solicitado.endsWith("/"))
+				if(requestedFile.endsWith("/"))
 				{
-					archivo_solicitado += DEFAULT_FILE;
+					requestedFile += DEFAULT_FILE;
 				}
 				
-				File archivo = new File(WEB_ROOT, archivo_solicitado);
+				File archivo = new File(WEB_ROOT, requestedFile);
 				int tamano_archivo = (int) archivo.length();
-				String contenido = getContentType(archivo_solicitado);
+				String contenido = getContentType(requestedFile);
 				
 				if(metodo.equals("GET"))
 				{
 					byte[] datos_archivo = leer_datos_archivo(archivo, tamano_archivo);
 					
 					
-					salida.println();
-					salida.println("HTTP/1.1 200 OK");
-					salida.println("Servidor: servidor http");
-					salida.println("Date: " + new Date());
-					salida.println("Content-type: " + contenido);
-					salida.println("Content-length: " + tamano_archivo);
+					output.println();
+					output.println("HTTP/1.1 200 OK");
+					output.println("Servidor: servidor http");
+					output.println("Date: " + new Date());
+					output.println("Content-type: " + contenido);
+					output.println("Content-length: " + tamano_archivo);
 					//salida.println("GET");
-					salida.println();//linea en blanco entre el header y el documento
-					salida.flush();
+					output.println();//linea en blanco entre el header y el documento
+					output.flush();
 					
-					datos_salida.write(datos_archivo, 0, tamano_archivo);
+					outputData.write(datos_archivo, 0, tamano_archivo);
 					
-					datos_salida.flush();
+					outputData.flush();
 					
 				}
 			}
@@ -147,7 +129,7 @@ public class HTTPServer implements Runnable{
 		{
 			try
 			{
-				archivo_no_encontrado(salida, datos_salida, archivo_solicitado);
+				archivo_no_encontrado(output, outputData, requestedFile);
 			}
 			catch (IOException ioe)
 			{
@@ -164,10 +146,10 @@ public class HTTPServer implements Runnable{
 		{
 			try
 			{
-				entrada.close();
-				salida.close();
-				datos_salida.close();
-				connect.close();
+				input.close();
+				output.close();
+				outputData.close();
+				connection.close();
 			}
 			catch(Exception e)
 			{
@@ -211,7 +193,7 @@ public class HTTPServer implements Runnable{
 	
 	private void archivo_no_encontrado(PrintWriter salida, OutputStream datos_salida, String archivo_solicitado) throws IOException
 	{
-		File archivo = new File(WEB_ROOT, FILE_NOT_FOUND);
+		File archivo = new File(WEB_ROOT, NOT_FOUND);
 		int tamano_archivo = (int)archivo.length();
 		String contenido = "text/html";
 		byte[] datos_archivo = leer_datos_archivo(archivo, tamano_archivo);
