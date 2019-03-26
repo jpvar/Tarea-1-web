@@ -85,8 +85,8 @@ public class HTTPServer implements Runnable{
 			System.out.println("Absolute path: " + requestedFile.getPath());
 			int fileSize = (int) requestedFile.length();*/
 			String contentMimeType = getContentType(requestedFileName.substring(requestedFileName.indexOf('.')).substring(1));
-			System.out.println("mime type: " + contentMimeType);
-			System.out.println(requestedFileName);
+			//System.out.println("mime type: " + contentMimeType);
+			//System.out.println(requestedFileName);
 			switch(httpMethod)
 			{
 				case HEAD:
@@ -96,6 +96,7 @@ public class HTTPServer implements Runnable{
 					output.println("Servidor: servidor http");
 					output.println("Date: " + new Date());
 					output.println("Content-type: " + contentMimeType);
+					
 					//output.println("Content-length: " + fileSize);
 					output.println();
 					output.flush();
@@ -107,6 +108,7 @@ public class HTTPServer implements Runnable{
 					requestedFile = new File(WEB_ROOT, requestedFileName);
 					//System.out.println("Absolute path: " + requestedFile.getPath());
 					int fileSize = (int) requestedFile.length();
+					
 					
 					byte[] dataFile = readDataFile(requestedFile, fileSize);
 					output.println();
@@ -122,6 +124,30 @@ public class HTTPServer implements Runnable{
 					
 					break;
 				case POST:
+					requestedFile = new File(WEB_ROOT, requestedFileName);
+					//System.out.println("Absolute path: " + requestedFile.getPath());
+					/*int*/ fileSize = (int) requestedFile.length();
+					
+					/*byte[]*/ dataFile = readDataFile(requestedFile, fileSize);
+					output.println();
+					output.println("HTTP/1.1 200 OK");
+					output.println("Servidor: servidor http");
+					output.println("Date: " + new Date());
+					output.println("Content-type: " + contentMimeType);
+					output.println("Content-length: " + fileSize);
+					output.println();
+					output.flush();
+					outputData.write(dataFile, 0, fileSize);
+					outputData.flush();
+					
+					StringBuffer queryString = new StringBuffer();
+					while((inputData = input.readLine()) != null)
+					{
+						queryString.append(inputData);
+					}
+					System.out.println("queryString: " + queryString.toString());
+					
+					break;
 					
 				default:
 					System.out.println("501 Not implemented: " + httpMethod + " method");
@@ -161,7 +187,7 @@ public class HTTPServer implements Runnable{
 		{
 			try
 			{
-				System.out.println("terminó");
+				//System.out.println("terminó");
 				input.close();
 				output.close();
 				outputData.close();
