@@ -8,3 +8,5 @@ rar application/x-rar-compressed
 svg image/svg+xml
 zip application/zip
 bin application/octet-stream
+png image/png
+ico image/x-icon

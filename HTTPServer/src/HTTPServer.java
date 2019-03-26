@@ -18,7 +18,7 @@ import java.util.Map;
 
 
 public class HTTPServer implements Runnable{
-	private static final File WEB_ROOT = new File(".");
+	private static final File WEB_ROOT = new File("HTTPServer");
 	private static final String HEAD = "HEAD";
 	private static final String GET = "GET";
 	private static final String POST = "POST";
@@ -26,7 +26,7 @@ public class HTTPServer implements Runnable{
 	private static final String NOT_FOUND = "404.html";
 	private static final String NOT_ACCEPTABLE = "406.html";
 	private static final String NOT_IMPLEMENTED = "501.html";
-	private static final int PORT = 8080;
+	private static final int PORT = 8082;
 	private Socket connection;
 	private Map<String, String> mimeTypes;
 
@@ -80,16 +80,34 @@ public class HTTPServer implements Runnable{
 			{
 				requestedFileName += DEFAULT_FILE;
 			}
-
+/*
 			requestedFile = new File(WEB_ROOT, requestedFileName);
-			int fileSize = (int) requestedFile.length();
-			String contentMimeType = getContentType(requestedFileName);
-
-			Switch(httpMethod)
+			System.out.println("Absolute path: " + requestedFile.getPath());
+			int fileSize = (int) requestedFile.length();*/
+			String contentMimeType = getContentType(requestedFileName.substring(requestedFileName.indexOf('.')).substring(1));
+			System.out.println("mime type: " + contentMimeType);
+			System.out.println(requestedFileName);
+			switch(httpMethod)
 			{
 				case HEAD:
+					//byte[] dataFile = readDataFile(requestedFile, fileSize);
+					output.println();
+					output.println("HTTP/1.1 200 OK");
+					output.println("Servidor: servidor http");
+					output.println("Date: " + new Date());
+					output.println("Content-type: " + contentMimeType);
+					//output.println("Content-length: " + fileSize);
+					output.println();
+					output.flush();
+					
+					break;
 					
 				case GET:
+					
+					requestedFile = new File(WEB_ROOT, requestedFileName);
+					//System.out.println("Absolute path: " + requestedFile.getPath());
+					int fileSize = (int) requestedFile.length();
+					
 					byte[] dataFile = readDataFile(requestedFile, fileSize);
 					output.println();
 					output.println("HTTP/1.1 200 OK");
@@ -101,23 +119,27 @@ public class HTTPServer implements Runnable{
 					output.flush();
 					outputData.write(dataFile, 0, fileSize);
 					outputData.flush();
+					
+					break;
 				case POST:
 					
 				default:
 					System.out.println("501 Not implemented: " + httpMethod + " method");
 					requestedFile = new File(WEB_ROOT, NOT_IMPLEMENTED);
-					int fileSize = (int)requestedFile.length();
-					String contentMimeType = "text/html";
+					/*int*/ fileSize = (int)requestedFile.length();
+					/*String*/ contentMimeType = "text/html";
 					byte[] fileData = readDataFile(requestedFile, fileSize);
-					System.out.println("HTTP/1.1 501 Not Implemented");
-					System.out.println("Server: HTTP Server");
-					System.out.println("Date: " + new Date());
-					System.out.println("Content-type: " + contentMimeType);
-					System.out.println("Content-length: " + fileSize);
-					System.out.println();
-					System.out.flush();
+					output.println("HTTP/1.1 501 Not Implemented");
+					output.println("Server: HTTP Server");
+					output.println("Date: " + new Date());
+					output.println("Content-type: " + contentMimeType);
+					output.println("Content-length: " + fileSize);
+					output.println();
+					output.flush();
 					outputData.write(fileData, 0, fileSize);
 					outputData.flush();
+					
+					break;
 			}
 		}
 		catch(FileNotFoundException fnfe)
@@ -139,6 +161,7 @@ public class HTTPServer implements Runnable{
 		{
 			try
 			{
+				System.out.println("terminó");
 				input.close();
 				output.close();
 				outputData.close();
@@ -176,7 +199,7 @@ public class HTTPServer implements Runnable{
 	{
 		for (Map.Entry<String, String> pair : mimeTypes.entrySet())//busca en el mapa de tipos el tipo solicitado
 		{
-			if(archivo_solicitado == pair.getKey())
+			if(archivo_solicitado.compareTo(pair.getKey()) == 0)
 			{
 				return pair.getValue().toString();//si encuentra el tipo, lo devuelve
 			}
@@ -188,7 +211,7 @@ public class HTTPServer implements Runnable{
 
 	public void cargar_mimeTypes()
 	{
-		String filename = "./mimetype.txt";
+		String filename = "C:\\Users\\jpvar\\Documents\\Universidad\\Computación\\2019\\I semestre\\Programación web\\Tarea-1-web\\HTTPServer\\mimetype.txt";
 		BufferedReader br = null;
 		FileReader fr = null;
 
@@ -214,11 +237,11 @@ public class HTTPServer implements Runnable{
 
 			}
 
-			for (Map.Entry<String, String> pair : mimeTypes.entrySet())
+			/*for (Map.Entry<String, String> pair : mimeTypes.entrySet())
 			{
 				System.out.print("Llave: " + pair.getKey() + " valor: " + pair.getValue());
 				System.out.println();
-			}
+			}*/
 		}
 		catch(IOException e)
 		{
