@@ -35,13 +35,13 @@ public class HTTPServer implements Runnable{
 	public HTTPServer(Socket connection)
 	{
 		this.connection = connection;
-		mimeTypes = new HashMap<String, String>();
-		this.loadMimeTypes();
 	}
 
 	public static void Init() {
 		try
 		{
+			mimeTypes = new HashMap<String, String>();
+			loadMimeTypes();
 			ServerSocket serverConnect = new ServerSocket(PORT);
 			System.out.println("Server started. \nListen for connections on port: " + PORT + "...\n");
 
@@ -82,10 +82,6 @@ public class HTTPServer implements Runnable{
 			{
 				requestedFileName += DEFAULT_FILE;
 			}
-/*
-			requestedFile = new File(WEB_ROOT, requestedFileName);
-			System.out.println("Absolute path: " + requestedFile.getPath());
-			int fileSize = (int) requestedFile.length();*/
 			String contentMimeType = getContentType(requestedFileName.substring(requestedFileName.indexOf('.')).substring(1));
 			System.out.println("mime type: " + contentMimeType);
 			System.out.println(requestedFileName);
@@ -197,28 +193,17 @@ public class HTTPServer implements Runnable{
 		return dataFile;
 	}
 
-	private String getContentType(String requestedFile)
+	private String getContentType(String requestedFileType)
 	{
-		for (Map.Entry<String, String> pair : mimeTypes.entrySet())
-		{
-			if(requestedFile.compareTo(pair.getKey()) == 0)
-			{
-				return pair.getValue().toString();
-			}
-		}
-		return "no";
+		String value = mimeTypes.get(requestedFileType);
+		return value.isEmpty() ? value : "no";
 	}
 
 	public static void loadMimeTypes()
 	{
-		Path currentRelativePath = Paths.get("");
-		String s = currentRelativePath.toAbsolutePath().toString();
-		System.out.println("Current relative path is: " + s);
-
 		String filename = "mimetype.txt";
 		BufferedReader br = null;
 		FileReader fr = null;
-
 		try
 		{
 			fr = new FileReader(filename);
