@@ -10,6 +10,8 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.ReadOnlyFileSystemException;
 import java.util.StringTokenizer;
 import java.util.Date;
@@ -18,7 +20,7 @@ import java.util.Map;
 
 
 public class HTTPServer implements Runnable{
-	private static final File WEB_ROOT = new File("HTTPServer");
+	private static final File WEB_ROOT = new File(".");
 	private static final String HEAD = "HEAD";
 	private static final String GET = "GET";
 	private static final String POST = "POST";
@@ -28,18 +30,18 @@ public class HTTPServer implements Runnable{
 	private static final String NOT_IMPLEMENTED = "501.html";
 	private static final int PORT = 8082;
 	private Socket connection;
-	private Map<String, String> mimeTypes;
+	private static Map<String, String> mimeTypes;
 
 	public HTTPServer(Socket connection)
 	{
 		this.connection = connection;
-		mimeTypes = new HashMap<String, String>();
-		this.cargar_mimeTypes();
 	}
 
 	public static void Init() {
 		try
 		{
+			mimeTypes = new HashMap<String, String>();
+			loadMimeTypes();
 			ServerSocket serverConnect = new ServerSocket(PORT);
 			System.out.println("Server started. \nListen for connections on port: " + PORT + "...\n");
 
@@ -80,13 +82,11 @@ public class HTTPServer implements Runnable{
 			{
 				requestedFileName += DEFAULT_FILE;
 			}
-/*
-			requestedFile = new File(WEB_ROOT, requestedFileName);
-			System.out.println("Absolute path: " + requestedFile.getPath());
-			int fileSize = (int) requestedFile.length();*/
 			String contentMimeType = getContentType(requestedFileName.substring(requestedFileName.indexOf('.')).substring(1));
-			//System.out.println("mime type: " + contentMimeType);
-			//System.out.println(requestedFileName);
+
+			System.out.println("mime type: " + contentMimeType);
+			System.out.printf("requested file [%s]\n", requestedFileName);
+
 			switch(httpMethod)
 			{
 				case HEAD:
@@ -176,18 +176,21 @@ public class HTTPServer implements Runnable{
 			}
 			catch (IOException ioe)
 			{
-				System.err.println("Error con archivo no encontrado: " + ioe.getMessage());
+				System.err.println("File not found: " + ioe.getMessage());
 			}
 		}
 		catch(IOException ioe)
 		{
-			System.err.println("Error del servidor: " + ioe);
+			System.err.println("Server error: " + ioe);
 		}
 		finally
 		{
 			try
 			{
-				//System.out.println("terminó");
+
+
+				System.out.println("Server:end");
+				
 				input.close();
 				output.close();
 				outputData.close();
@@ -195,53 +198,43 @@ public class HTTPServer implements Runnable{
 			}
 			catch(Exception e)
 			{
-				System.err.println("Error cerrando el archivo: " + e.getMessage());
+				System.err.println("Error closing file: " + e.getMessage());
 			}
 		}
 	}
 
-	private byte[] readDataFile(File archivo, int tamano) throws IOException
+	private byte[] readDataFile(File file, int fileSize) throws IOException
 	{
-		FileInputStream archivo_entrada = null;
-		byte[] datos_archivo = new byte[tamano];
+		FileInputStream inputFile = null;
+		byte[] dataFile = new byte[fileSize];
 
 		try
 		{
-			archivo_entrada = new FileInputStream(archivo);
-			archivo_entrada.read(datos_archivo);
+			inputFile = new FileInputStream(file);
+			inputFile.read(dataFile);
 		}
 		finally
 		{
-			if(archivo_entrada != null)
+			if(inputFile != null)
 			{
-				archivo_entrada.close();
+				inputFile.close();
 			}
 		}
 
-		return datos_archivo;
+		return dataFile;
 	}
 
-	private String getContentType(String archivo_solicitado)
+	private String getContentType(String requestedFileType)
 	{
-		for (Map.Entry<String, String> pair : mimeTypes.entrySet())//busca en el mapa de tipos el tipo solicitado
-		{
-			if(archivo_solicitado.compareTo(pair.getKey()) == 0)
-			{
-				return pair.getValue().toString();//si encuentra el tipo, lo devuelve
-			}
-		}
-		return "no";//si no lo encuentra retorna no (406. No aceptable)
-
-
+		String value = mimeTypes.get(requestedFileType);
+		return value.isEmpty() ? "no": value;
 	}
 
-	public void cargar_mimeTypes()
+	public static void loadMimeTypes()
 	{
-		String filename = "C:\\Users\\jpvar\\Documents\\Universidad\\Computación\\2019\\I semestre\\Programación web\\Tarea-1-web\\HTTPServer\\mimetype.txt";
+		String filename = "mimetype.txt";
 		BufferedReader br = null;
 		FileReader fr = null;
-
-
 		try
 		{
 			fr = new FileReader(filename);
@@ -258,16 +251,8 @@ public class HTTPServer implements Runnable{
 						String value = tokenizer.nextToken();
 						mimeTypes.put(key, value);
 					}
-
 				}
-
 			}
-
-			/*for (Map.Entry<String, String> pair : mimeTypes.entrySet())
-			{
-				System.out.print("Llave: " + pair.getKey() + " valor: " + pair.getValue());
-				System.out.println();
-			}*/
 		}
 		catch(IOException e)
 		{
@@ -276,22 +261,22 @@ public class HTTPServer implements Runnable{
 	}
 
 
-	private void fileNotFound(PrintWriter salida, OutputStream datos_salida, String archivo_solicitado) throws IOException
+	private void fileNotFound(PrintWriter output, OutputStream outputData, String requestedFile) throws IOException
 	{
-		File archivo = new File(WEB_ROOT, NOT_FOUND);
-		int tamano_archivo = (int)archivo.length();
-		String contenido = "text/html";
-		byte[] datos_archivo = readDataFile(archivo, tamano_archivo);
+		File file = new File(WEB_ROOT, NOT_FOUND);
+		int fileSize = (int)file.length();
+		String content = "text/html";
+		byte[] dataFile = readDataFile(file, fileSize);
 
-		salida.println("HTTP/1.1 404 Not found");
-		salida.println("Servidor: servidor http");
-		salida.println("Date: " + new Date());
-		salida.println("Content-type: " + contenido);
-		salida.println("Content-length: " + tamano_archivo);
-		salida.println();//linea en blanco entre el header y el documento
-		salida.flush();
+		output.println("HTTP/1.1 404 Not found");
+		output.println("Server: HTTP Server");
+		output.println("Date: " + new Date());
+		output.println("Content-type: " + content);
+		output.println("Content-length: " + fileSize);
+		output.println();
+		output.flush();
 
-		datos_salida.write(datos_archivo, 0, tamano_archivo);
-		datos_salida.flush();
+		outputData.write(dataFile, 0, fileSize);
+		outputData.flush();
 	}
 }
