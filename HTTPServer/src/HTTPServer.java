@@ -20,7 +20,7 @@ import java.util.Map;
 
 
 public class HTTPServer implements Runnable{
-	private static final File WEB_ROOT = new File("HTTPServer");
+	private static final File WEB_ROOT = new File(".");
 	private static final String HEAD = "HEAD";
 	private static final String GET = "GET";
 	private static final String POST = "POST";
@@ -84,7 +84,7 @@ public class HTTPServer implements Runnable{
 			}
 			String contentMimeType = getContentType(requestedFileName.substring(requestedFileName.indexOf('.')).substring(1));
 			System.out.println("mime type: " + contentMimeType);
-			System.out.println(requestedFileName);
+			System.out.printf("requested file [%s]\n", requestedFileName);
 			switch(httpMethod)
 			{
 				case HEAD:
