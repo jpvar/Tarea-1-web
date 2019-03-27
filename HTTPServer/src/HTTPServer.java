@@ -196,7 +196,7 @@ public class HTTPServer implements Runnable{
 	private String getContentType(String requestedFileType)
 	{
 		String value = mimeTypes.get(requestedFileType);
-		return value.isEmpty() ? value : "no";
+		return value.isEmpty() ? "no": value;
 	}
 
 	public static void loadMimeTypes()
