@@ -10,6 +10,8 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.ReadOnlyFileSystemException;
 import java.util.StringTokenizer;
 import java.util.Date;
@@ -28,13 +30,13 @@ public class HTTPServer implements Runnable{
 	private static final String NOT_IMPLEMENTED = "501.html";
 	private static final int PORT = 8082;
 	private Socket connection;
-	private Map<String, String> mimeTypes;
+	private static Map<String, String> mimeTypes;
 
 	public HTTPServer(Socket connection)
 	{
 		this.connection = connection;
 		mimeTypes = new HashMap<String, String>();
-		this.cargar_mimeTypes();
+		this.loadMimeTypes();
 	}
 
 	public static void Init() {
@@ -150,18 +152,18 @@ public class HTTPServer implements Runnable{
 			}
 			catch (IOException ioe)
 			{
-				System.err.println("Error con archivo no encontrado: " + ioe.getMessage());
+				System.err.println("File not found: " + ioe.getMessage());
 			}
 		}
 		catch(IOException ioe)
 		{
-			System.err.println("Error del servidor: " + ioe);
+			System.err.println("Server error: " + ioe);
 		}
 		finally
 		{
 			try
 			{
-				System.out.println("terminó");
+				System.out.println("Server:end");
 				input.close();
 				output.close();
 				outputData.close();
@@ -169,52 +171,53 @@ public class HTTPServer implements Runnable{
 			}
 			catch(Exception e)
 			{
-				System.err.println("Error cerrando el archivo: " + e.getMessage());
+				System.err.println("Error closing file: " + e.getMessage());
 			}
 		}
 	}
 
-	private byte[] readDataFile(File archivo, int tamano) throws IOException
+	private byte[] readDataFile(File file, int fileSize) throws IOException
 	{
-		FileInputStream archivo_entrada = null;
-		byte[] datos_archivo = new byte[tamano];
+		FileInputStream inputFile = null;
+		byte[] dataFile = new byte[fileSize];
 
 		try
 		{
-			archivo_entrada = new FileInputStream(archivo);
-			archivo_entrada.read(datos_archivo);
+			inputFile = new FileInputStream(file);
+			inputFile.read(dataFile);
 		}
 		finally
 		{
-			if(archivo_entrada != null)
+			if(inputFile != null)
 			{
-				archivo_entrada.close();
+				inputFile.close();
 			}
 		}
 
-		return datos_archivo;
+		return dataFile;
 	}
 
-	private String getContentType(String archivo_solicitado)
+	private String getContentType(String requestedFile)
 	{
-		for (Map.Entry<String, String> pair : mimeTypes.entrySet())//busca en el mapa de tipos el tipo solicitado
+		for (Map.Entry<String, String> pair : mimeTypes.entrySet())
 		{
-			if(archivo_solicitado.compareTo(pair.getKey()) == 0)
+			if(requestedFile.compareTo(pair.getKey()) == 0)
 			{
-				return pair.getValue().toString();//si encuentra el tipo, lo devuelve
+				return pair.getValue().toString();
 			}
 		}
-		return "no";//si no lo encuentra retorna no (406. No aceptable)
-
-
+		return "no";
 	}
 
-	public void cargar_mimeTypes()
+	public static void loadMimeTypes()
 	{
-		String filename = "C:\\Users\\jpvar\\Documents\\Universidad\\Computación\\2019\\I semestre\\Programación web\\Tarea-1-web\\HTTPServer\\mimetype.txt";
+		Path currentRelativePath = Paths.get("");
+		String s = currentRelativePath.toAbsolutePath().toString();
+		System.out.println("Current relative path is: " + s);
+
+		String filename = "mimetype.txt";
 		BufferedReader br = null;
 		FileReader fr = null;
-
 
 		try
 		{
@@ -232,16 +235,8 @@ public class HTTPServer implements Runnable{
 						String value = tokenizer.nextToken();
 						mimeTypes.put(key, value);
 					}
-
 				}
-
 			}
-
-			/*for (Map.Entry<String, String> pair : mimeTypes.entrySet())
-			{
-				System.out.print("Llave: " + pair.getKey() + " valor: " + pair.getValue());
-				System.out.println();
-			}*/
 		}
 		catch(IOException e)
 		{
@@ -250,22 +245,22 @@ public class HTTPServer implements Runnable{
 	}
 
 
-	private void fileNotFound(PrintWriter salida, OutputStream datos_salida, String archivo_solicitado) throws IOException
+	private void fileNotFound(PrintWriter output, OutputStream outputData, String requestedFile) throws IOException
 	{
-		File archivo = new File(WEB_ROOT, NOT_FOUND);
-		int tamano_archivo = (int)archivo.length();
-		String contenido = "text/html";
-		byte[] datos_archivo = readDataFile(archivo, tamano_archivo);
+		File file = new File(WEB_ROOT, NOT_FOUND);
+		int fileSize = (int)file.length();
+		String content = "text/html";
+		byte[] dataFile = readDataFile(file, fileSize);
 
-		salida.println("HTTP/1.1 404 Not found");
-		salida.println("Servidor: servidor http");
-		salida.println("Date: " + new Date());
-		salida.println("Content-type: " + contenido);
-		salida.println("Content-length: " + tamano_archivo);
-		salida.println();//linea en blanco entre el header y el documento
-		salida.flush();
+		output.println("HTTP/1.1 404 Not found");
+		output.println("Server: HTTP Server");
+		output.println("Date: " + new Date());
+		output.println("Content-type: " + content);
+		output.println("Content-length: " + fileSize);
+		output.println();
+		output.flush();
 
-		datos_salida.write(datos_archivo, 0, tamano_archivo);
-		datos_salida.flush();
+		outputData.write(dataFile, 0, fileSize);
+		outputData.flush();
 	}
 }
