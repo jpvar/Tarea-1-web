@@ -17,6 +17,7 @@ import java.util.StringTokenizer;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 
 public class HTTPServer implements Runnable{
@@ -113,10 +114,13 @@ public class HTTPServer implements Runnable{
 					byte[] dataFile = readDataFile(requestedFile, fileSize);
 					output.println();
 					output.println("HTTP/1.1 200 OK");
-					output.println("Servidor: servidor http");
+                    output.println("Host: localhost:" + PORT);
+                    output.println("Accept:" + contentMimeType);
 					output.println("Date: " + new Date());
 					output.println("Content-type: " + contentMimeType);
 					output.println("Content-length: " + fileSize);
+					output.println("Server: HTTP Server");
+                    output.println("Referer: localhost:" + PORT);
 					output.println();
 					output.flush();
 					outputData.write(dataFile, 0, fileSize);
@@ -129,9 +133,38 @@ public class HTTPServer implements Runnable{
 					/*int*/ fileSize = (int) requestedFile.length();
 					
 					/*byte[]*/ dataFile = readDataFile(requestedFile, fileSize);
+
+                    StringBuffer queryString = new StringBuffer();
+                    int contentLength = 0;
+                    while((inputData = input.readLine()) != null)
+                    {
+                        if(inputData.contains("Content-Length"))
+                        {
+                            contentLength = Integer.parseInt(inputData.substring(16)) ;
+                        }
+                        if(inputData.equals(""))
+                        {
+                            for(int i = 0; i < contentLength; ++i)
+                            {
+                                queryString.append(((char) input.read()));
+                            }
+                            System.out.println(queryString.toString());
+                            break;
+                        }
+
+
+                            //inputData = input.readLine();
+                            //queryString.append(inputData);
+                            System.out.println("queryString: " + queryString.toString());
+
+
+                    }
+                    System.out.println("queryString: " + queryString.toString());
+
 					output.println();
 					output.println("HTTP/1.1 200 OK");
-					output.println("Servidor: servidor http");
+					output.println("Host: HTTP Server");
+					output.println("Accept: " + contentMimeType);
 					output.println("Date: " + new Date());
 					output.println("Content-type: " + contentMimeType);
 					output.println("Content-length: " + fileSize);
@@ -139,13 +172,8 @@ public class HTTPServer implements Runnable{
 					output.flush();
 					outputData.write(dataFile, 0, fileSize);
 					outputData.flush();
-					
-					StringBuffer queryString = new StringBuffer();
-					while((inputData = input.readLine()) != null)
-					{
-						queryString.append(inputData);
-					}
-					System.out.println("queryString: " + queryString.toString());
+					//System.out.println("querystring: " + input.toString());
+
 					
 					break;
 					
@@ -190,7 +218,7 @@ public class HTTPServer implements Runnable{
 
 
 				System.out.println("Server:end");
-				
+
 				input.close();
 				output.close();
 				outputData.close();
@@ -232,7 +260,7 @@ public class HTTPServer implements Runnable{
 
 	public static void loadMimeTypes()
 	{
-		String filename = "mimetype.txt";
+		String filename = "HTTPServer/mimetype.txt";
 		BufferedReader br = null;
 		FileReader fr = null;
 		try
