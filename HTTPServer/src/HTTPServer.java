@@ -18,6 +18,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.DocumentBuilder;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Node;
+import org.w3c.dom.Element;
 
 
 public class HTTPServer implements Runnable{
@@ -91,16 +97,54 @@ public class HTTPServer implements Runnable{
 			switch(httpMethod)
 			{
 				case HEAD:
+					String accept = "";//accept field in header
+					boolean acceptType = false;
 					//byte[] dataFile = readDataFile(requestedFile, fileSize);
-					output.println();
-					output.println("HTTP/1.1 200 OK");
-					output.println("Servidor: servidor http");
-					output.println("Date: " + new Date());
-					output.println("Content-type: " + contentMimeType);
-					
-					//output.println("Content-length: " + fileSize);
-					output.println();
-					output.flush();
+					while((inputData = input.readLine()) != null)
+					{
+						if(inputData.contains("Accept: "))//
+						{
+							String mimeTypes = inputData.substring(8);
+							accept = mimeTypes;
+							String[] types = mimeTypes.split(",");
+
+							for(String t : types) {
+								if (t.contains(";")) {
+									if (contentMimeType.equals(t.substring(0, t.indexOf(";"))) || t.substring(0, t.indexOf(";")).equals("*/*")) {
+										acceptType = true;
+										break;
+									}
+								} else if (contentMimeType.equals(t)) {
+									acceptType = true;
+									break;
+								} else if (t.equals("*/*")) {
+									acceptType = true;
+									break;
+								}
+							}
+
+							if(acceptType == false)//si el tipo no es soportado retorna not acceptable
+							{
+								notAcceptable(output, outputData, requestedFileName, contentMimeType, accept);
+								break;
+							}
+							break;
+						}
+					}
+
+					if(acceptType)
+					{
+						output.println();
+						output.println("HTTP/1.1 200 OK");
+						output.println("Servidor: servidor http");
+						output.println("Date: " + new Date());
+						output.println("Content-type: " + contentMimeType);
+
+						//output.println("Content-length: " + fileSize);
+						output.println();
+						output.flush();
+					}
+
 					
 					break;
 					
@@ -112,8 +156,8 @@ public class HTTPServer implements Runnable{
 
 					byte[] dataFile = readDataFile(requestedFile, fileSize);
 
-					String accept = "";//accept field in header
-					boolean acceptType = false;
+					accept = "";//accept field in header
+					acceptType = false;
 					while((inputData = input.readLine()) != null)
 					{
 						if(inputData.contains("Accept: "))//
@@ -124,13 +168,16 @@ public class HTTPServer implements Runnable{
 
 							for(String t : types) {
 								if (t.contains(";")) {
-									if (contentMimeType.equals(t.substring(0, t.indexOf(";")))) {
+									if (contentMimeType.equals(t.substring(0, t.indexOf(";"))) || t.substring(0, t.indexOf(";")).equals("*/*")) {
 										acceptType = true;
+										break;
 									}
 								} else if (contentMimeType.equals(t)) {
 									acceptType = true;
+									break;
 								} else if (t.equals("*/*")) {
 									acceptType = true;
+									break;
 								}
 							}
 
@@ -139,7 +186,7 @@ public class HTTPServer implements Runnable{
 								notAcceptable(output, outputData, requestedFileName, contentMimeType, accept);
 								break;
 							}
-
+							break;
 						}
 					}
 
@@ -321,7 +368,41 @@ public class HTTPServer implements Runnable{
 
 	public static void loadMimeTypes()
 	{
-		String filename = "./mimetype.txt";
+		try {
+
+			File inputFile = new File("./web.xml");
+			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+			Document doc = dBuilder.parse(inputFile);
+			doc.getDocumentElement().normalize();
+			NodeList nList = doc.getElementsByTagName("mime-mapping");
+
+
+			for (int temp = 0; temp < nList.getLength(); temp++)
+			{
+				Node nNode = nList.item(temp);
+				//System.out.println("\nCurrent Element :" + nNode.getNodeName());
+
+				if (nNode.getNodeType() == Node.ELEMENT_NODE)
+				{
+					Element eElement = (Element) nNode;
+					mimeTypes.put(eElement.getElementsByTagName("extension").item(0).getTextContent(), eElement.getElementsByTagName("mime-type").item(0).getTextContent());
+				}
+			}
+			/*for (Map.Entry<String, String> pair : mimeTypes.entrySet())
+			{
+				System.out.print("Llave: " + pair.getKey() + " valor: " + pair.getValue());
+				System.out.println();
+			}*/
+		}
+		catch (Exception e)
+		{
+			System.out.println("Error parsing xml" + e.getMessage());
+		}
+
+
+
+		/*String filename = "./mimetype.txt";
 		BufferedReader br = null;
 		FileReader fr = null;
 		try
@@ -346,7 +427,7 @@ public class HTTPServer implements Runnable{
 		catch(IOException e)
 		{
 			System.out.println(e.getMessage());
-		}
+		}*/
 	}
 
 
