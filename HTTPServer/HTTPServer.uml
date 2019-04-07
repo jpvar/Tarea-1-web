@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>HTTPServer</OriginalElement>
+  <nodes>
+    <node x="374.0" y="0.0">java.lang.FunctionalInterface</node>
+    <node x="0.0" y="270.0">HTTPServer</node>
+    <node x="70.5" y="79.0">ServerLog</node>
+    <node x="388.5" y="124.0">java.lang.Runnable</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="HTTPServer" target="java.lang.Runnable">
+      <point x="196.0" y="-246.5" />
+      <point x="490.0" y="245.0" />
+      <point x="448.0" y="245.0" />
+      <point x="0.0" y="25.5" />
+    </edge>
+    <edge source="HTTPServer" target="ServerLog">
+      <point x="-196.0" y="-246.5" />
+      <point x="98.0" y="245.0" />
+      <point x="145.0" y="245.0" />
+      <point x="-74.5" y="70.5" />
+    </edge>
+    <edge source="java.lang.Runnable" target="java.lang.FunctionalInterface">
+      <point x="0.0" y="-25.5" />
+      <point x="0.0" y="14.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="0.5925925925925926" x="294.0" y="381.5" />
+  <SelectedNodes />
+  <Categories>
+    <Category>Fields</Category>
+    <Category>Constructors</Category>
+    <Category>Methods</Category>
+    <Category>Properties</Category>
+  </Categories>
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+
