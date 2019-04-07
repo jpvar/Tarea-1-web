@@ -38,6 +38,7 @@ public class HTTPServer implements Runnable{
 	private static final int PORT = 8082;
 	private Socket connection;
 	private static Map<String, String> mimeTypes;
+	private static ServerLog serverLog = new ServerLog();
 
 	public HTTPServer(Socket connection)
 	{
@@ -47,7 +48,7 @@ public class HTTPServer implements Runnable{
 	public static void Init() {
 		try
 		{
-			mimeTypes = new HashMap<String, String>();
+			mimeTypes = new HashMap<>();
 			loadMimeTypes();
 			ServerSocket serverConnect = new ServerSocket(PORT);
 			System.out.println("Server started. \nListen for connections on port: " + PORT + "...\n");
@@ -100,52 +101,22 @@ public class HTTPServer implements Runnable{
 					String accept = "";//accept field in header
 					boolean acceptType = false;
 					//byte[] dataFile = readDataFile(requestedFile, fileSize);
-					while((inputData = input.readLine()) != null)
-					{
-						if(inputData.contains("Accept: "))//
-						{
-							String mimeTypes = inputData.substring(8);
-							accept = mimeTypes;
-							String[] types = mimeTypes.split(",");
-
-							for(String t : types) {
-								if (t.contains(";")) {
-									if (contentMimeType.equals(t.substring(0, t.indexOf(";"))) || t.substring(0, t.indexOf(";")).equals("*/*")) {
-										acceptType = true;
-										break;
-									}
-								} else if (contentMimeType.equals(t)) {
-									acceptType = true;
-									break;
-								} else if (t.equals("*/*")) {
-									acceptType = true;
-									break;
-								}
-							}
-
-							if(acceptType == false)//si el tipo no es soportado retorna not acceptable
-							{
-								notAcceptable(output, outputData, requestedFileName, contentMimeType, accept);
-								break;
-							}
-							break;
-						}
-					}
-
-					if(acceptType)
-					{
+					acceptType = isAcceptType(input, output, outputData, requestedFileName, contentMimeType, acceptType);
+					if(acceptType) {
 						output.println();
 						output.println("HTTP/1.1 200 OK");
-						output.println("Servidor: servidor http");
+						output.println("Server: localhost");
 						output.println("Date: " + new Date());
 						output.println("Content-type: " + contentMimeType);
 
 						//output.println("Content-length: " + fileSize);
 						output.println();
 						output.flush();
+						serverLog.log(HEAD, "localhost", "localhost", WEB_ROOT + requestedFileName, "");
 					}
-
-					
+					else {
+						notAcceptable(output, outputData, requestedFileName, contentMimeType, accept);
+					}
 					break;
 					
 				case GET:
@@ -158,37 +129,7 @@ public class HTTPServer implements Runnable{
 
 					accept = "";//accept field in header
 					acceptType = false;
-					while((inputData = input.readLine()) != null)
-					{
-						if(inputData.contains("Accept: "))//
-						{
-							String mimeTypes = inputData.substring(8);
-							accept = mimeTypes;
-							String[] types = mimeTypes.split(",");
-
-							for(String t : types) {
-								if (t.contains(";")) {
-									if (contentMimeType.equals(t.substring(0, t.indexOf(";"))) || t.substring(0, t.indexOf(";")).equals("*/*")) {
-										acceptType = true;
-										break;
-									}
-								} else if (contentMimeType.equals(t)) {
-									acceptType = true;
-									break;
-								} else if (t.equals("*/*")) {
-									acceptType = true;
-									break;
-								}
-							}
-
-							if(acceptType == false)//si el tipo no es soportado retorna not acceptable
-							{
-								notAcceptable(output, outputData, requestedFileName, contentMimeType, accept);
-								break;
-							}
-							break;
-						}
-					}
+					acceptType = isAcceptType(input, output, outputData, requestedFileName, contentMimeType, acceptType);
 
 					if(acceptType)
 					{
@@ -205,6 +146,9 @@ public class HTTPServer implements Runnable{
 						output.flush();
 						outputData.write(dataFile, 0, fileSize);
 						outputData.flush();
+						serverLog.log(GET, "localhost", "localhost", requestedFile.getPath(), "");
+					} else {
+						notAcceptable(output, outputData, requestedFileName, contentMimeType, accept);
 					}
 
 					
@@ -281,6 +225,9 @@ public class HTTPServer implements Runnable{
 						output.flush();
 						outputData.write(dataFile, 0, fileSize);
 						outputData.flush();
+						serverLog.log(POST, "localhost", "localhost", requestedFile.getPath(), queryString.toString());
+					} else {
+						notAcceptable(output, outputData, requestedFileName, contentMimeType, accept);
 					}
 
 					break;
@@ -300,7 +247,7 @@ public class HTTPServer implements Runnable{
 					output.flush();
 					outputData.write(fileData, 0, fileSize);
 					outputData.flush();
-					
+
 					break;
 			}
 		}
@@ -323,10 +270,7 @@ public class HTTPServer implements Runnable{
 		{
 			try
 			{
-
-
 				System.out.println("Server:end");
-
 				input.close();
 				output.close();
 				outputData.close();
@@ -337,6 +281,37 @@ public class HTTPServer implements Runnable{
 				System.err.println("Error closing file: " + e.getMessage());
 			}
 		}
+	}
+
+	private boolean isAcceptType(BufferedReader input, PrintWriter output, BufferedOutputStream outputData, String requestedFileName, String contentMimeType, boolean acceptType) throws IOException {
+		String inputData;
+		String accept;
+		while((inputData = input.readLine()) != null)
+		{
+			if(inputData.contains("Accept: "))//
+			{
+				String mimeTypes = inputData.substring(8);
+				accept = mimeTypes;
+				String[] types = mimeTypes.split(",");
+
+				for(String t : types) {
+					if (t.contains(";")) {
+						if (contentMimeType.equals(t.substring(0, t.indexOf(";"))) || t.substring(0, t.indexOf(";")).equals("*/*")) {
+							acceptType = true;
+							break;
+						}
+					} else if (contentMimeType.equals(t)) {
+						acceptType = true;
+						break;
+					} else if (t.equals("*/*")) {
+						acceptType = true;
+						break;
+					}
+				}
+				break;
+			}
+		}
+		return acceptType;
 	}
 
 	private byte[] readDataFile(File file, int fileSize) throws IOException
