@@ -94,76 +94,51 @@ public class HTTPServer implements Runnable{
 
 			System.out.println("mime type: " + contentMimeType);
 			System.out.printf("requested file [%s]\n", requestedFileName);
-
+			int fileSize = 0;
 			switch(httpMethod)
 			{
 				case HEAD:
+					requestedFile = new File(WEB_ROOT, requestedFileName);
+					fileSize = (int) requestedFile.length();
 					String accept = "";//accept field in header
 					boolean acceptType = false;
-					//byte[] dataFile = readDataFile(requestedFile, fileSize);
 					acceptType = isAcceptType(input, output, outputData, requestedFileName, contentMimeType, acceptType);
 					if(acceptType) {
-						output.println();
-						output.println("HTTP/1.1 200 OK");
-						output.println("Server: localhost");
-						output.println("Date: " + new Date());
-						output.println("Content-type: " + contentMimeType);
-
-						//output.println("Content-length: " + fileSize);
-						output.println();
-						output.flush();
+						returnResponse(output, "HTTP/1.1 200 OK", fileSize, contentMimeType);
 						serverLog.log(HEAD, "localhost", "localhost", WEB_ROOT + requestedFileName, "");
 					}
 					else {
-						notAcceptable(output, outputData, requestedFileName, contentMimeType, accept);
+						notAcceptable(output, outputData);
 					}
 					break;
 					
 				case GET:
-					
 					requestedFile = new File(WEB_ROOT, requestedFileName);
-					//System.out.println("Absolute path: " + requestedFile.getPath());
-					int fileSize = (int) requestedFile.length();
-
+					fileSize = (int) requestedFile.length();
 					byte[] dataFile = readDataFile(requestedFile, fileSize);
-
 					accept = "";//accept field in header
 					acceptType = false;
 					acceptType = isAcceptType(input, output, outputData, requestedFileName, contentMimeType, acceptType);
 
 					if(acceptType)
 					{
-						output.println();
-						output.println("HTTP/1.1 200 OK");
-						output.println("Host: localhost:" + PORT);
-						output.println("Accept:" + contentMimeType);
-						output.println("Date: " + new Date());
-						output.println("Content-type: " + contentMimeType);
-						output.println("Content-length: " + fileSize);
-						output.println("Server: HTTP Server");
-						output.println("Referer: localhost:" + PORT);
-						output.println();
-						output.flush();
+						returnResponse(output, "HTTP/1.1 200 OK", fileSize, contentMimeType);
 						outputData.write(dataFile, 0, fileSize);
 						outputData.flush();
 						serverLog.log(GET, "localhost", "localhost", requestedFile.getPath(), "");
 					} else {
-						notAcceptable(output, outputData, requestedFileName, contentMimeType, accept);
+						notAcceptable(output, outputData);
 					}
-
-					
 					break;
 				case POST:
 					requestedFile = new File(WEB_ROOT, requestedFileName);
-					//System.out.println("Absolute path: " + requestedFile.getPath());
-					/*int*/ fileSize = (int) requestedFile.length();
-					
-					/*byte[]*/ dataFile = readDataFile(requestedFile, fileSize);
+					fileSize = (int) requestedFile.length();
+					dataFile = readDataFile(requestedFile, fileSize);
 
                     StringBuffer queryString = new StringBuffer();
-                     int contentLength = 0;
-                     accept = "";//accept field in header
-					 acceptType = false;
+                    int contentLength = 0;
+                    accept = "";//accept field in header
+					acceptType = false;
                     while((inputData = input.readLine()) != null)
                     {
                         if(inputData.contains("Accept: "))//
@@ -186,7 +161,7 @@ public class HTTPServer implements Runnable{
 
 							if(acceptType == false)//si el tipo no es soportado retorna not acceptable
 							{
-								notAcceptable(output, outputData, requestedFileName, contentMimeType, accept);
+								notAcceptable(output, outputData);
 								break;
 							}
 
@@ -204,30 +179,16 @@ public class HTTPServer implements Runnable{
                             System.out.println(queryString.toString());
                             break;
                         }
-
-
-                            //inputData = input.readLine();
-                            //queryString.append(inputData);
                             System.out.println("queryString: " + queryString.toString());
-
-
                     }
                     System.out.println("queryString: " + queryString.toString());
 					if(acceptType) {
-						output.println();
-						output.println("HTTP/1.1 200 OK");
-						output.println("Host: HTTP Server");
-						output.println("Accept: " + accept);
-						output.println("Date: " + new Date());
-						output.println("Content-type: " + contentMimeType);
-						output.println("Content-length: " + fileSize);
-						output.println();
-						output.flush();
+						returnResponse(output, "HTTP/1.1 200 OK", fileSize, contentMimeType);
 						outputData.write(dataFile, 0, fileSize);
 						outputData.flush();
 						serverLog.log(POST, "localhost", "localhost", requestedFile.getPath(), queryString.toString());
 					} else {
-						notAcceptable(output, outputData, requestedFileName, contentMimeType, accept);
+						notAcceptable(output, outputData);
 					}
 
 					break;
@@ -235,16 +196,10 @@ public class HTTPServer implements Runnable{
 				default:
 					System.out.println("501 Not implemented: " + httpMethod + " method");
 					requestedFile = new File(WEB_ROOT, NOT_IMPLEMENTED);
-					/*int*/ fileSize = (int)requestedFile.length();
-					/*String*/ contentMimeType = "text/html";
+					fileSize = (int)requestedFile.length();
+					contentMimeType = "text/html";
 					byte[] fileData = readDataFile(requestedFile, fileSize);
-					output.println("HTTP/1.1 501 Not Implemented");
-					output.println("Server: HTTP Server");
-					output.println("Date: " + new Date());
-					output.println("Content-type: " + contentMimeType);
-					output.println("Content-length: " + fileSize);
-					output.println();
-					output.flush();
+					returnResponse(output, "HTTP/1.1 501 Not Implemented", fileSize, contentMimeType);
 					outputData.write(fileData, 0, fileSize);
 					outputData.flush();
 
@@ -255,7 +210,7 @@ public class HTTPServer implements Runnable{
 		{
 			try
 			{
-				fileNotFound(output, outputData, requestedFileName);
+				fileNotFound(output, outputData);
 			}
 			catch (IOException ioe)
 			{
@@ -283,6 +238,17 @@ public class HTTPServer implements Runnable{
 		}
 	}
 
+	private  void returnResponse(PrintWriter output, String response, int fileSize, String contentMimeType){
+		output.println();
+		output.println(response);
+		output.println("Date: " + new Date());
+		output.println("Server: localhost");
+		output.println("Content-length: " + fileSize);
+		output.println("Content-type: " + contentMimeType);
+		output.println("Referer: localhost:" + PORT);
+		output.println();
+		output.flush();
+	}
 	private boolean isAcceptType(BufferedReader input, PrintWriter output, BufferedOutputStream outputData, String requestedFileName, String contentMimeType, boolean acceptType) throws IOException {
 		String inputData;
 		String accept;
@@ -364,85 +330,33 @@ public class HTTPServer implements Runnable{
 					mimeTypes.put(eElement.getElementsByTagName("extension").item(0).getTextContent(), eElement.getElementsByTagName("mime-type").item(0).getTextContent());
 				}
 			}
-			/*for (Map.Entry<String, String> pair : mimeTypes.entrySet())
-			{
-				System.out.print("Llave: " + pair.getKey() + " valor: " + pair.getValue());
-				System.out.println();
-			}*/
 		}
 		catch (Exception e)
 		{
 			System.out.println("Error parsing xml" + e.getMessage());
 		}
-
-
-
-		/*String filename = "./mimetype.txt";
-		BufferedReader br = null;
-		FileReader fr = null;
-		try
-		{
-			fr = new FileReader(filename);
-			br = new BufferedReader(fr);
-			String current_line = "";
-			while((current_line = br.readLine()) != null)
-			{
-				StringTokenizer tokenizer = new StringTokenizer(current_line);
-				if(tokenizer.hasMoreTokens())
-				{
-					String key = tokenizer.nextToken();
-					if(tokenizer.hasMoreTokens())
-					{
-						String value = tokenizer.nextToken();
-						mimeTypes.put(key, value);
-					}
-				}
-			}
-		}
-		catch(IOException e)
-		{
-			System.out.println(e.getMessage());
-		}*/
 	}
 
 
-	private void fileNotFound(PrintWriter output, OutputStream outputData, String requestedFile) throws IOException
+	private void fileNotFound(PrintWriter output, OutputStream outputData) throws IOException
 	{
 		File file = new File(WEB_ROOT, NOT_FOUND);
 		int fileSize = (int)file.length();
 		String content = "text/html";
 		byte[] dataFile = readDataFile(file, fileSize);
-
-		output.println("HTTP/1.1 404 Not found");
-		output.println("Server: HTTP Server");
-		output.println("Date: " + new Date());
-		output.println("Content-type: " + content);
-		output.println("Content-length: " + fileSize);
-		output.println();
-		output.flush();
-
+		returnResponse(output, "HTTP/1.1 404 Not found", fileSize, content);
 		outputData.write(dataFile, 0, fileSize);
 		outputData.flush();
 	}
 
-	private void notAcceptable(PrintWriter output, OutputStream outputData, String requestedFile, String contentMimeType, String accept) throws IOException
+	private void notAcceptable(PrintWriter output, OutputStream outputData) throws IOException
 	{
 		File file = new File(WEB_ROOT, NOT_ACCEPTABLE);
 		int fileSize = (int)file.length();
 		String content = "text/html";
 		byte[] dataFile = readDataFile(file, fileSize);
-
-		output.println();
-		output.println("HTTP/1.1 406 Not acceptable");
-		output.println("Host: HTTP Server");
-		output.println("Accept: " + accept);
-		output.println("Date: " + new Date());
-		output.println("Content-type: " + contentMimeType);
-		output.println("Content-length: " + fileSize);
-		output.println();
-		output.flush();
+		returnResponse(output, "HTTP/1.1 406 Not acceptable", fileSize, content);
 		outputData.write(dataFile, 0, fileSize);
 		outputData.flush();
-
 	}
 }

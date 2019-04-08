@@ -1,18 +1,14 @@
-Apr 07, 2019 12:45:20 PM ServerLog log
+Apr 07, 2019 10:14:40 PM ServerLog log
 INFO: |GET|localhost|localhost|.\index.html|
-Apr 07, 2019 12:45:20 PM ServerLog log
-INFO: |GET|localhost|localhost|.\img\queen.png|
-Apr 07, 2019 12:45:27 PM ServerLog log
-INFO: |POST|localhost|localhost|.\test.html|fname=Esteban&lname=Acu%C3%B1a&email=eortega1793%40gmail.com
-Apr 07, 2019 12:46:42 PM ServerLog log
-INFO: |GET|localhost|localhost|.\img\queen.png|
-Apr 07, 2019 12:52:13 PM ServerLog log
-INFO: |GET|localhost|localhost|.\index.html|
-Apr 07, 2019 12:53:38 PM ServerLog log
-INFO: |GET|localhost|localhost|.\index.html|
-Apr 07, 2019 12:54:41 PM ServerLog log
+Apr 07, 2019 10:18:15 PM ServerLog log
+INFO: |HEAD|localhost|localhost|./index.html|
+Apr 07, 2019 10:18:43 PM ServerLog log
+INFO: |HEAD|localhost|localhost|./index.html|
+Apr 07, 2019 10:21:06 PM ServerLog log
 INFO: |POST|localhost|localhost|.\index.html|mensaje=Hola+Mundo
-Apr 07, 2019 12:57:50 PM ServerLog log
+Apr 07, 2019 11:25:53 PM ServerLog log
+INFO: |GET|localhost|localhost|.\index.html|
+Apr 07, 2019 11:27:04 PM ServerLog log
 INFO: |HEAD|localhost|localhost|./index.html|
-Apr 07, 2019 12:58:18 PM ServerLog log
-INFO: |HEAD|localhost|localhost|./index.html|
+Apr 07, 2019 11:27:21 PM ServerLog log
+INFO: |POST|localhost|localhost|.\index.html|mensaje=Hola+Mundo
